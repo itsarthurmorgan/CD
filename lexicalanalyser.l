@@ -22,7 +22,7 @@ int main() {
 
 
 /* Save the code as lex.l.
-Use the Lex tool (e.g., flex on Linux/macOS) to compile: flex lex.l.
+Use the Lex tool (e.g., flex on Linux/macOS) to compile: flex lexicalanalyser.l.
 This generates a lex.yy.c file containing the C code for the lexical analyzer.
 Compile the generated C code with C compiler: gcc lex.yy.c -lfl (or) gcc lex.yy.c -o lex -ll.
 Run the executable to perform lexical analysis on your input file */
