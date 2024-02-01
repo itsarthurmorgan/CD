@@ -95,3 +95,19 @@ int main() {
 
     return 0;
 }
+//o:Enter the number of production rules: 2
+// Enter the production rules:
+// Rule 1 (Non-terminal): S
+// Number of rules for S: 2
+// Enter the rules (separated by spaces): a b
+// Rule 2 (Non-terminal): A
+// Number of rules for A: 1
+// Enter the rules (separated by spaces): b
+
+// Grammar Rules:
+// S -> a
+// | b
+// A -> b
+// Enter the input string: abc
+// Successfully matched rule: S -> a
+// Parsing successful!
