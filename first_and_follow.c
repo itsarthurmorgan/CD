@@ -1,113 +1,123 @@
-#include<malloc.h>
-#include<stdio.h>
-#include<string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-char **productions;
-int fvar;
+#define MAX_RULES 10
+#define MAX_SYMBOLS 10
 
-int findPos(char NonTer)
-{
-	int i=0;
-	while(productions[i][0]!=NonTer)
-		i++;
-	return i;
-}
-char* findGenerating(char Ter)
-{
-	int i=0;
-	while(productions[i][0]!=Ter)
-		i++;
-	return productions[i];
-}
-char findFirst(char *prod)
-{
-	int i,j=0;
-	for(i=3;i<strlen(prod);i++)
-	{	
-		if(prod[i]>=97 && prod[i]<=122 || prod[i]==')' || prod[i]=='(' || prod[i]==',')
-		{	
-			printf(" %c ",prod[i]);
+// Structure to represent production rules
+typedef struct {
+    char nonTerminal;
+    char rhs[MAX_RULES][MAX_SYMBOLS];
+    int numRules;
+} ProductionRule;
 
-			while(prod[i]!='/' && prod[i]!='\0')
-				i++;
-		}
-		else if(prod[i]>=65 && prod[i]<=90)
-		{
-			printf("  %c", findFirst(productions[findPos(prod[i])]));
-			return;
-		}
-		else if(prod[i]=='#')
-		{
-			printf("  #");
-		}
-		else 
-			continue;
-	}
-	return;
+ProductionRule rules[MAX_RULES];
+int numRules;
+
+// Function to calculate First set for a non-terminal
+void calculateFirst(char nonTerminal, char firstSet[MAX_SYMBOLS]) {
+    int i, j, k;
+    for (i = 0; i < numRules; i++) {
+        if (rules[i].nonTerminal == nonTerminal) {
+            for (j = 0; j < rules[i].numRules; j++) {
+                char firstSymbol = rules[i].rhs[j][0];
+                if (firstSymbol >= 'a' && firstSymbol <= 'z') {
+                    // Terminal symbol
+                    firstSet[firstSymbol - 'a'] = 1;
+                } else if (firstSymbol != 'ε') {
+                    // Non-terminal symbol
+                    calculateFirst(firstSymbol, firstSet);
+                    for (k = 0; k < MAX_SYMBOLS; k++) {
+                        if (firstSet[k]) {
+                            firstSet[k] = 0;
+                            strcat(firstSet, rules[i].rhs[j]);
+                        }
+                    }
+                } else {
+                    // ε production
+                    firstSet[firstSymbol - 'ε'] = 1;
+                }
+            }
+        }
+    }
 }
 
-void findFollow(char GeneratingSymbol,int n)
-{
-	int i,j=0;
-	if(GeneratingSymbol=='S')
-			printf(" $ ");
-	for(j=0;j<n;j++)
-	{
-		for(i=3;i<strlen(productions[j]);i++)
-		{	
-			if(GeneratingSymbol==productions[j][i])
-			{
-				if(productions[j][i+1] >= 97 && productions[j][i+1] <= 122 || productions[j][i+1]==')' || productions[j][i+1]=='(' || productions[j][i+1]==',')
-				{	
-					printf(" %c ",productions[j][i+1]);
-				}
-				else if(productions[j][i+1] >= 65 && productions[j][i+1] <= 90)
-				{
-					char ans=findFirst(findGenerating(productions[j][i+1]));
-				}
-				else if(i+1==strlen(productions[j]))
-				{
-					findFollow(productions[j][0],n);
-				}
-				else 
-					continue;
-			}
-		}
-	}
+// Function to calculate Follow set for a non-terminal
+void calculateFollow(char nonTerminal, char followSet[MAX_SYMBOLS]) {
+    int i, j, k;
+    for (i = 0; i < numRules; i++) {
+        for (j = 0; j < rules[i].numRules; j++) {
+            char* pos = strstr(rules[i].rhs[j], &nonTerminal);
+            if (pos != NULL) {
+                char nextSymbol = *(pos + 1);
+                if (nextSymbol >= 'a' && nextSymbol <= 'z') {
+                    // Terminal symbol
+                    followSet[nextSymbol - 'a'] = 1;
+                } else if (nextSymbol != '\0') {
+                    // Non-terminal symbol
+                    char firstSet[MAX_SYMBOLS];
+                    calculateFirst(nextSymbol, firstSet);
+                    for (k = 0; k < MAX_SYMBOLS; k++) {
+                        if (firstSet[k]) {
+                            firstSet[k] = 0;
+                            strcat(followSet, firstSet);
+                        }
+                    }
+                    if (strchr(firstSet, 'ε') != NULL) {
+                        // ε is in the First set of nextSymbol
+                        calculateFollow(rules[i].nonTerminal, followSet);
+                    }
+                }
+            }
+        }
+    }
 }
 
-int main()
-{
-	int j,i,n,k,tempInd,flag=0;
-	printf("Enter the number of productions");
-	scanf("%d\n",&n);
-	productions=(char**)malloc(sizeof(char*)*n);
-	for(i=0;i<n;i++)
-		productions[i]=(char*)malloc(sizeof(char)*20);
-	
-	char **productionsDup=(char**)malloc(sizeof(char*)*n);
-	for(i=0;i<n;i++)
-		productionsDup[i]=(char*)malloc(sizeof(char)*20);
-	
-	for(i=0;i<n;i++)
-	{
-		gets(productions[i]);
-		productionsDup[i]=productions[i];
-	}
-	
-	//First Computation
-	for(i=0;i<n;i++)
-	{
-		printf("\nFIRST(%c)={  ",productions[i][0]);
-		char ans=findFirst(productions[i]);
-		printf("}\n");
-	}
-	
-	for(fvar=0;fvar<n;fvar++)
-	{
-		printf("\nFOLLOW(%c)={",productions[fvar][0]);
-		findFollow(productions[fvar][0],n);
-		printf("}\n");
-	}
-	printf("\nThe End");
+int main() {
+    // Reading the grammar rules
+    printf("Enter the number of production rules: ");
+    scanf("%d", &numRules);
+
+    printf("Enter the production rules:\n");
+    for (int i = 0; i < numRules; i++) {
+        printf("Rule %d (Non-terminal): ", i + 1);
+        scanf(" %c", &rules[i].nonTerminal);
+
+        printf("Number of rules for %c: ", rules[i].nonTerminal);
+        scanf("%d", &rules[i].numRules);
+
+        printf("Enter the rules (separated by spaces): ");
+        for (int j = 0; j < rules[i].numRules; j++) {
+            scanf("%s", rules[i].rhs[j]);
+        }
+    }
+
+    // Calculate and print First and Follow sets
+    for (int i = 0; i < numRules; i++) {
+        char firstSet[MAX_SYMBOLS] = {0};
+        calculateFirst(rules[i].nonTerminal, firstSet);
+        printf("First(%c): {", rules[i].nonTerminal);
+        for (int j = 0; j < MAX_SYMBOLS; j++) {
+            if (firstSet[j]) {
+                printf(" %c", 'a' + j);
+            }
+        }
+        printf(" }\n");
+    }
+
+    for (int i = 0; i < numRules; i++) {
+        char followSet[MAX_SYMBOLS] = {0};
+        calculateFollow(rules[i].nonTerminal, followSet);
+        printf("Follow(%c): {", rules[i].nonTerminal);
+        for (int j = 0; j < MAX_SYMBOLS; j++) {
+            if (followSet[j]) {
+                printf(" %c", 'a' + j);
+            }
+        }
+        printf(" }\n");
+    }
+
+    return 0;
 }
+
